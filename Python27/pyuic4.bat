@@ -1,0 +1,1 @@
+@"C:\Users\dmn58364\Documents\Code\mantid\Code\Third_Party\lib\win64\Python27\python.exe" "C:\Users\dmn58364\Documents\Code\mantid\Code\Third_Party\lib\win64\Python27\Lib\site-packages\PyQt4\uic\pyuic.py" %1 %2 %3 %4 %5 %6 %7 %8 %9
