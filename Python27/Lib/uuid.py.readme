@@ -1,0 +1,11 @@
+The version of uuid.py that we ship here is patched to avoid a bug in the ctypes module on Windows. The bug is described here: http://bugs.python.org/issue17213
+
+IPython uses the uuid module as a means of generating a unique ID for a connection and Mantid is required to bundle IPython.
+
+We now ship 4 files surrounding uuid.py:
+  - uuid.py: The file used by the bundled Mantid Python installation;
+  - uuid.pyc: The compiled file used by the bundled Mantid Python installation;
+  - uuid.py.orig: Original file as shipped with Python 2.7.3;
+  - uuid.py.patch: A patch file showing the changes between the above to files.
+  
+Once the above bug is fixed Python can upgraded and these changes discarded.
