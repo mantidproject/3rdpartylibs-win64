@@ -14,8 +14,12 @@ Text instance. The width and height of the TextArea instance is the
 width and height of the its child text.
 """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-from __future__ import print_function
+import six
+from six.moves import xrange, zip
+
 import warnings
 import matplotlib.transforms as mtransforms
 import matplotlib.artist as martist
@@ -62,7 +66,7 @@ def _get_packed_offsets(wd_list, total, sep, mode="fixed"):
     *mode* : packing mode. 'fixed', 'expand', or 'equal'.
     """
 
-    w_list, d_list = zip(*wd_list)
+    w_list, d_list = list(zip(*wd_list))
     # d_list is currently not used.
 
     if mode == "fixed":
@@ -145,6 +149,11 @@ class OffsetBox(martist.Artist):
 
         super(OffsetBox, self).__init__(*args, **kwargs)
 
+        # Clipping has not been implemented in the OffesetBox family, so
+        # disable the clip flag for consistency. It can always be turned back
+        # on to zero effect.
+        self.set_clip_on(False)
+
         self._children = []
         self._offset = (0, 0)
 
@@ -152,7 +161,7 @@ class OffsetBox(martist.Artist):
         state = martist.Artist.__getstate__(self)
 
         # pickle cannot save instancemethods, so handle them here
-        from cbook import _InstanceMethodPickler
+        from .cbook import _InstanceMethodPickler
         import inspect
 
         offset = state['_offset']
@@ -162,7 +171,7 @@ class OffsetBox(martist.Artist):
 
     def __setstate__(self, state):
         self.__dict__ = state
-        from cbook import _InstanceMethodPickler
+        from .cbook import _InstanceMethodPickler
         if isinstance(self._offset, _InstanceMethodPickler):
             self._offset = self._offset.get_instancemethod()
 
@@ -197,7 +206,7 @@ class OffsetBox(martist.Artist):
 
         accepts extent of the box
         """
-        if callable(self._offset):
+        if six.callable(self._offset):
             return self._offset(width, height, xdescent, ydescent, renderer)
         else:
             return self._offset
@@ -271,18 +280,32 @@ class PackerBase(OffsetBox):
                  align=None, mode=None,
                  children=None):
         """
-        *pad* : boundary pad
-        *sep* : spacing between items
-        *width*, *height* : width and height of the container box.
-           calculated if None.
-        *align* : alignment of boxes. Can be one of 'top', 'bottom',
-           'left', 'right', 'center' and 'baseline'
-        *mode* : packing mode
+        Parameters
+        ----------
+        pad : float, optional
+            Boundary pad.
 
-        .. note::
-          *pad* and *sep* need to given in points and will be
-          scale with the renderer dpi, while *width* and *height*
-          need to be in pixels.
+        sep : float, optional
+            Spacing between items.
+
+        width : float, optional
+
+        height : float, optional
+           Width and height of the container box, calculated if
+           `None`.
+
+        align : str, optional
+            Alignment of boxes. Can be one of ``top``, ``bottom``,
+            ``left``, ``right``, ``center`` and ``baseline``
+
+        mode : str, optional
+            Packing mode.
+
+        Notes
+        -----
+        *pad* and *sep* need to given in points and will be scale with
+        the renderer dpi, while *width* and *height* need to be in
+        pixels.
         """
         super(PackerBase, self).__init__()
 
@@ -305,17 +328,32 @@ class VPacker(PackerBase):
                  align="baseline", mode="fixed",
                  children=None):
         """
-        *pad* : boundary pad
-        *sep* : spacing between items
-        *width*, *height* : width and height of the container box.
-           calculated if None.
-        *align* : alignment of boxes
-        *mode* : packing mode
+        Parameters
+        ----------
+        pad : float, optional
+            Boundary pad.
 
-        .. note::
-          *pad* and *sep* need to given in points and will be
-          scale with the renderer dpi, while *width* and *height*
-          need to be in pixels.
+        sep : float, optional
+            Spacing between items.
+
+        width : float, optional
+
+        height : float, optional
+
+            width and height of the container box, calculated if
+            `None`.
+
+        align : str, optional
+            Alignment of boxes.
+
+        mode : str, optional
+            Packing mode.
+
+        Notes
+        -----
+        *pad* and *sep* need to given in points and will be scale with
+        the renderer dpi, while *width* and *height* need to be in
+        pixels.
         """
         super(VPacker, self).__init__(pad, sep, width, height,
                                       align, mode,
@@ -357,7 +395,7 @@ class VPacker(PackerBase):
 
         return width + 2 * pad, height + 2 * pad, \
                xdescent + pad, ydescent + pad, \
-               zip(xoffsets, yoffsets)
+               list(zip(xoffsets, yoffsets))
 
 
 class HPacker(PackerBase):
@@ -369,17 +407,31 @@ class HPacker(PackerBase):
                  align="baseline", mode="fixed",
                  children=None):
         """
-        *pad* : boundary pad
-        *sep* : spacing between items
-        *width*, *height* : width and height of the container box.
-           calculated if None.
-        *align* : alignment of boxes
-        *mode* : packing mode
+        Parameters
+        ----------
+        pad : float, optional
+            Boundary pad.
 
-        .. note::
-          *pad* and *sep* need to given in points and will be
-          scale with the renderer dpi, while *width* and *height*
-          need to be in pixels.
+        sep : float, optional
+            Spacing between items.
+
+        width : float, optional
+
+        height : float, optional
+           Width and height of the container box, calculated if
+           `None`.
+
+        align : str
+           Alignment of boxes.
+
+        mode : str
+           Packing mode.
+
+        Notes
+        -----
+        *pad* and *sep* need to given in points and will be scale with
+        the renderer dpi, while *width* and *height* need to be in
+        pixels.
         """
         super(HPacker, self).__init__(pad, sep, width, height,
                                       align, mode, children)
@@ -422,7 +474,7 @@ class HPacker(PackerBase):
 
         return width + 2 * pad, height + 2 * pad, \
                xdescent + pad, ydescent + pad, \
-               zip(xoffsets, yoffsets)
+               list(zip(xoffsets, yoffsets))
 
 
 class PaddedBox(OffsetBox):
@@ -615,12 +667,20 @@ class TextArea(OffsetBox):
                  minimumdescent=True,
                  ):
         """
-        *s* : a string to be displayed.
-        *textprops* : property dictionary for the text
-        *multilinebaseline* : If True, baseline for multiline text is
-                              adjusted so that it is (approximatedly)
-                              center-aligned with singleline text.
-        *minimumdescent*  : If True, the box has a minimum descent of "p".
+        Parameters
+        ----------
+        s : str
+            a string to be displayed.
+
+        textprops : `~matplotlib.font_manager.FontProperties`, optional
+
+        multilinebaseline : bool, optional
+            If `True`, baseline for multiline text is adjusted so that
+            it is (approximatedly) center-aligned with singleline
+            text.
+
+        minimumdescent : bool, optional
+            If `True`, the box has a minimum descent of "p".
         """
         if textprops is None:
             textprops = {}
@@ -1062,7 +1122,7 @@ class AnchoredOffsetbox(OffsetBox):
         """
         assert loc in range(1, 11)  # called only internally
 
-        BEST, UR, UL, LL, LR, R, CL, CR, LC, UC, C = range(11)
+        BEST, UR, UL, LL, LR, R, CL, CR, LC, UC, C = list(xrange(11))
 
         anchor_coefs = {UR: "NE",
                         UL: "NW",
@@ -1084,22 +1144,38 @@ class AnchoredOffsetbox(OffsetBox):
 
 class AnchoredText(AnchoredOffsetbox):
     """
-    AnchoredOffsetbox with Text
+    AnchoredOffsetbox with Text.
     """
 
     def __init__(self, s, loc, pad=0.4, borderpad=0.5, prop=None, **kwargs):
         """
-        *s* : string
-        *loc* : location code
-        *prop* : font property
-        *pad* : pad between the text and the frame as fraction of the font
-                size.
-        *borderpad* : pad between the frame and the axes (or bbox_to_anchor).
+        Parameters
+        ----------
+        s : string
+            Text.
 
-        other keyword parameters of AnchoredOffsetbox are also allowed.
+        loc : str
+            Location code.
+
+        pad : float, optional
+            Pad between the text and the frame as fraction of the font
+            size.
+
+        borderpad : float, optional
+            Pad between the frame and the axes (or *bbox_to_anchor*).
+
+        prop : `matplotlib.font_manager.FontProperties`
+            Font properties.
+
+        Notes
+        -----
+        Other keyword parameters of `AnchoredOffsetbox` are also
+        allowed.
         """
 
-        propkeys = prop.keys()
+        if prop is None:
+            prop = {}
+        propkeys = list(six.iterkeys(prop))
         badkwargs = ('ha', 'horizontalalignment', 'va', 'verticalalignment')
         if set(badkwargs) & set(propkeys):
             warnings.warn("Mixing horizontalalignment or verticalalignment "
@@ -1260,6 +1336,16 @@ class AnnotationBbox(martist.Artist, _AnnotationBase):
 
         self.set_fontsize(fontsize)
 
+        if xybox is None:
+            self.xybox = xy
+        else:
+            self.xybox = xybox
+
+        if boxcoords is None:
+            self.boxcoords = xycoords
+        else:
+            self.boxcoords = boxcoords
+
         if arrowprops is not None:
             self._arrow_relpos = self.arrowprops.pop("relpos", (0.5, 0.5))
             self.arrow_patch = FancyArrowPatch((0, 0), (1, 1),
@@ -1269,8 +1355,8 @@ class AnnotationBbox(martist.Artist, _AnnotationBase):
             self.arrow_patch = None
 
         _AnnotationBase.__init__(self,
-                                 xy, xytext=xybox,
-                                 xycoords=xycoords, textcoords=boxcoords,
+                                 xy,
+                                 xycoords=xycoords,
                                  annotation_clip=annotation_clip)
 
         martist.Artist.__init__(self, **kwargs)
@@ -1289,6 +1375,22 @@ class AnnotationBbox(martist.Artist, _AnnotationBase):
         if bboxprops:
             self.patch.set(**bboxprops)
         self._drawFrame = frameon
+
+    @property
+    def xyann(self):
+        return self.xybox
+
+    @xyann.setter
+    def xyann(self, xyann):
+        self.xybox = xyann
+
+    @property
+    def anncoords(self):
+        return self.boxcoords
+
+    @anncoords.setter
+    def anncoords(self, coords):
+        self.boxcoords = coords
 
     def contains(self, event):
         t, tinfo = self.offsetbox.contains(event)
@@ -1347,14 +1449,14 @@ class AnnotationBbox(martist.Artist, _AnnotationBase):
         patch.
         """
 
-        x, y = self.xytext
-        if isinstance(self.textcoords, tuple):
-            xcoord, ycoord = self.textcoords
+        x, y = self.xybox
+        if isinstance(self.boxcoords, tuple):
+            xcoord, ycoord = self.boxcoords
             x1, y1 = self._get_xy(renderer, x, y, xcoord)
             x2, y2 = self._get_xy(renderer, x, y, ycoord)
             ox0, oy0 = x1, y2
         else:
-            ox0, oy0 = self._get_xy(renderer, x, y, self.textcoords)
+            ox0, oy0 = self._get_xy(renderer, x, y, self.boxcoords)
 
         w, h, xd, yd = self.offsetbox.get_extent(renderer)
 
@@ -1574,32 +1676,30 @@ class DraggableAnnotation(DraggableBase):
 
     def save_offset(self):
         ann = self.annotation
-        x, y = ann.xytext
-        if isinstance(ann.textcoords, tuple):
-            xcoord, ycoord = ann.textcoords
+        x, y = ann.xyann
+        if isinstance(ann.anncoords, tuple):
+            xcoord, ycoord = ann.anncoords
             x1, y1 = ann._get_xy(self.canvas.renderer, x, y, xcoord)
             x2, y2 = ann._get_xy(self.canvas.renderer, x, y, ycoord)
             ox0, oy0 = x1, y2
         else:
-            ox0, oy0 = ann._get_xy(self.canvas.renderer, x, y, ann.textcoords)
+            ox0, oy0 = ann._get_xy(self.canvas.renderer, x, y, ann.anncoords)
 
         self.ox, self.oy = ox0, oy0
-        self.annotation.textcoords = "figure pixels"
+        self.annotation.anncoords = "figure pixels"
         self.update_offset(0, 0)
 
     def update_offset(self, dx, dy):
         ann = self.annotation
-        ann.xytext = self.ox + dx, self.oy + dy
-        x, y = ann.xytext
-        # xy is never used
-        xy = ann._get_xy(self.canvas.renderer, x, y, ann.textcoords)
+        ann.xyann = self.ox + dx, self.oy + dy
+        x, y = ann.xyann
 
     def finalize_offset(self):
-        loc_in_canvas = self.annotation.xytext
-        self.annotation.textcoords = "axes fraction"
+        loc_in_canvas = self.annotation.xyann
+        self.annotation.anncoords = "axes fraction"
         pos_axes_fraction = self.annotation.axes.transAxes.inverted()
         pos_axes_fraction = pos_axes_fraction.transform_point(loc_in_canvas)
-        self.annotation.xytext = tuple(pos_axes_fraction)
+        self.annotation.xyann = tuple(pos_axes_fraction)
 
 
 if __name__ == "__main__":

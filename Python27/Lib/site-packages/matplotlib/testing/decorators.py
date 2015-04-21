@@ -1,19 +1,30 @@
-from __future__ import print_function
-from matplotlib.testing.noseclasses import KnownFailureTest, \
-     KnownFailureDidNotFailTest, ImageComparisonFailure
-import os, sys, shutil
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
+import functools
+import gc
+import os
+import sys
+import shutil
+import warnings
+import unittest
+
 import nose
-import matplotlib
+import numpy as np
+
 import matplotlib.tests
 import matplotlib.units
 from matplotlib import cbook
 from matplotlib import ticker
 from matplotlib import pyplot as plt
 from matplotlib import ft2font
-import numpy as np
+from matplotlib.testing.noseclasses import KnownFailureTest, \
+     KnownFailureDidNotFailTest, ImageComparisonFailure
 from matplotlib.testing.compare import comparable_formats, compare_images, \
      make_test_filename
-import warnings
+
 
 def knownfailureif(fail_condition, msg=None, known_exception_class=None ):
     """
@@ -54,6 +65,18 @@ def knownfailureif(fail_condition, msg=None, known_exception_class=None ):
         return nose.tools.make_decorator(f)(failer)
     return known_fail_decorator
 
+
+def _do_cleanup(original_units_registry):
+    plt.close('all')
+    gc.collect()
+
+    matplotlib.tests.setup()
+
+    matplotlib.units.registry.clear()
+    matplotlib.units.registry.update(original_units_registry)
+    warnings.resetwarnings()  # reset any warning filters set in tests
+
+
 class CleanupTest(object):
     @classmethod
     def setup_class(cls):
@@ -61,33 +84,42 @@ class CleanupTest(object):
 
     @classmethod
     def teardown_class(cls):
-        plt.close('all')
-
-        matplotlib.tests.setup()
-
-        matplotlib.units.registry.clear()
-        matplotlib.units.registry.update(cls.original_units_registry)
-        warnings.resetwarnings() #reset any warning filters set in tests
+        _do_cleanup(cls.original_units_registry)
 
     def test(self):
         self._func()
 
+
+class CleanupTestCase(unittest.TestCase):
+    '''A wrapper for unittest.TestCase that includes cleanup operations'''
+    @classmethod
+    def setUpClass(cls):
+        import matplotlib.units
+        cls.original_units_registry = matplotlib.units.registry.copy()
+
+    @classmethod
+    def tearDownClass(cls):
+        _do_cleanup(cls.original_units_registry)
+
+
 def cleanup(func):
-    name = func.__name__
-    func = staticmethod(func)
-    func.__get__(1).__name__ = '_private'
-    new_class = type(
-        name,
-        (CleanupTest,),
-        {'_func': func})
-    return new_class
+    @functools.wraps(func)
+    def wrapped_function(*args, **kwargs):
+        original_units_registry = matplotlib.units.registry.copy()
+        try:
+            func(*args, **kwargs)
+        finally:
+            _do_cleanup(original_units_registry)
+
+    return wrapped_function
+
 
 def check_freetype_version(ver):
     if ver is None:
         return True
 
     from distutils import version
-    if isinstance(ver, str):
+    if isinstance(ver, six.string_types):
         ver = (ver, ver)
     ver = [version.StrictVersion(x) for x in ver]
     found = version.StrictVersion(ft2font.__freetype_version__)
@@ -110,13 +142,16 @@ class ImageComparisonTest(CleanupTest):
             ax.xaxis.set_minor_formatter(ticker.NullFormatter())
             ax.yaxis.set_major_formatter(ticker.NullFormatter())
             ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+            try:
+                ax.zaxis.set_major_formatter(ticker.NullFormatter())
+                ax.zaxis.set_minor_formatter(ticker.NullFormatter())
+            except AttributeError:
+                pass
 
     def test(self):
         baseline_dir, result_dir = _image_directories(self._func)
 
         for fignum, baseline in zip(plt.get_fignums(), self._baseline_images):
-            figure = plt.figure(fignum)
-
             for extension in self._extensions:
                 will_fail = not extension in comparable_formats()
                 if will_fail:
@@ -140,6 +175,8 @@ class ImageComparisonTest(CleanupTest):
                     will_fail, fail_msg,
                     known_exception_class=ImageComparisonFailure)
                 def do_test():
+                    figure = plt.figure(fignum)
+
                     if self._remove_text:
                         self.remove_text(figure)
 
@@ -232,7 +269,7 @@ def image_comparison(baseline_images=None, extensions=None, tol=13,
         # well, outside of the context of our image comparison test
         # generator.
         func = staticmethod(func)
-        func.__get__(1).__name__ = '_private'
+        func.__get__(1).__name__ = str('_private')
         new_class = type(
             name,
             (ImageComparisonTest,),
@@ -271,10 +308,15 @@ def _image_directories(func):
             """A version of imp which can handle dots in the module name"""
             res = None
             for sub_mod in module_name.split('.'):
-                res = file, path, _ = imp.find_module(sub_mod, path)
-                path = [path]
-                if file is not None:
-                    file.close()
+                try:
+                    res = file, path, _ = imp.find_module(sub_mod, path)
+                    path = [path]
+                    if file is not None:
+                        file.close()
+                except ImportError:
+                    # assume namespace package
+                    path = sys.modules[sub_mod].__path__
+                    res = None, path, None
             return res
 
         mod_file = find_dotted_module(func.__module__)[1]

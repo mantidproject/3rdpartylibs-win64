@@ -4,7 +4,10 @@ registering new colormaps and for getting a colormap by name,
 and a mixin class for adding color mapping functionality.
 
 """
-from __future__ import print_function, division
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
 
 import os
 
@@ -31,8 +34,8 @@ def _reverser(f):
 def revcmap(data):
     """Can only handle specification *data* in dictionary format."""
     data_r = {}
-    for key, val in data.iteritems():
-        if callable(val):
+    for key, val in six.iteritems(data):
+        if six.callable(val):
             valnew = _reverser(val)
                 # This doesn't work: lambda x: val(1-x)
                 # The same "val" (the first one) is used
@@ -72,11 +75,8 @@ def _generate_cmap(name, lutsize):
 
 LUTSIZE = mpl.rcParams['image.lut']
 
-_cmapnames = datad.keys()  # need this list because datad is changed in loop
-
 # Generate the reversed specifications ...
-
-for cmapname in _cmapnames:
+for cmapname in list(six.iterkeys(datad)):
     spec = datad[cmapname]
     spec_reversed = _reverse_cmap_spec(spec)
     datad[cmapname + '_r'] = spec_reversed
@@ -84,7 +84,7 @@ for cmapname in _cmapnames:
 # Precache the cmaps with ``lutsize = LUTSIZE`` ...
 
 # Use datad.keys() to also add the reversed ones added in the section above:
-for cmapname in datad.iterkeys():
+for cmapname in six.iterkeys(datad):
     cmap_d[cmapname] = _generate_cmap(cmapname, LUTSIZE)
 
 locals().update(cmap_d)
@@ -157,8 +157,10 @@ def get_cmap(name=None, lut=None):
             return cmap_d[name]
         elif name in datad:
             return _generate_cmap(name, lut)
-
-    raise ValueError("Colormap %s is not recognized" % name)
+    else:
+        raise ValueError(
+            "Colormap %s is not recognized. Possible values are: %s"
+            % (name, ', '.join(cmap_d.keys())))
 
 
 class ScalarMappable:

@@ -1,17 +1,21 @@
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+from six.moves import zip
+
 import warnings
-# 2.3 compatibility
-try:
-    set
-except NameError:
-    import sets
-    set = sets.Set
-from itertools import izip
+
 
 import numpy as np
 
 from matplotlib._delaunay import delaunay
-from interpolate import LinearInterpolator, NNInterpolator
+from .interpolate import LinearInterpolator, NNInterpolator
+from matplotlib.cbook import warn_deprecated
+warn_deprecated('1.4',
+                name='matplotlib.delaunay',
+                alternative='matplotlib.tri.Triangulation',
+                obj_type='module')
 
 __all__ = ['Triangulation', 'DuplicatePointWarning']
 
@@ -147,11 +151,11 @@ class Triangulation(object):
         border = (self.triangle_neighbors == -1)
 
         edges = {}
-        edges.update(dict(izip(self.triangle_nodes[border[:, 0]][:, 1],
+        edges.update(dict(zip(self.triangle_nodes[border[:, 0]][:, 1],
                                self.triangle_nodes[border[:, 0]][:, 2])))
-        edges.update(dict(izip(self.triangle_nodes[border[:, 1]][:, 2],
+        edges.update(dict(zip(self.triangle_nodes[border[:, 1]][:, 2],
                                self.triangle_nodes[border[:, 1]][:, 0])))
-        edges.update(dict(izip(self.triangle_nodes[border[:, 2]][:, 0],
+        edges.update(dict(zip(self.triangle_nodes[border[:, 2]][:, 0],
                                self.triangle_nodes[border[:, 2]][:, 1])))
 
         # Take an arbitrary starting point and its subsequent node

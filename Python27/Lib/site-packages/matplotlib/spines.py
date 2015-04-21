@@ -1,4 +1,7 @@
-from __future__ import division, print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
 
 import matplotlib
 rcParams = matplotlib.rcParams
@@ -54,6 +57,7 @@ class Spine(mpatches.Patch):
         self.set_facecolor('none')
         self.set_edgecolor(rcParams['axes.edgecolor'])
         self.set_linewidth(rcParams['axes.linewidth'])
+        self.set_capstyle('projecting')
         self.axis = None
 
         self.set_zorder(2.5)
@@ -372,17 +376,10 @@ class Spine(mpatches.Patch):
         self._position = position
         self._calc_offset_transform()
 
-        t = self.get_spine_transform()
-        if self.spine_type in ['left', 'right']:
-            t2 = mtransforms.blended_transform_factory(t,
-                                                       self.axes.transData)
-        elif self.spine_type in ['bottom', 'top']:
-            t2 = mtransforms.blended_transform_factory(self.axes.transData,
-                                                       t)
-        self.set_transform(t2)
+        self.set_transform(self.get_spine_transform())
 
         if self.axis is not None:
-            self.axis.cla()
+            self.axis.reset_ticks()
 
     def get_position(self):
         """get the spine position"""

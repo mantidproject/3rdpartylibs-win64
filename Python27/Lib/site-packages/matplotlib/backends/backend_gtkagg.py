@@ -1,7 +1,11 @@
 """
 Render to gtk from agg
 """
-from __future__ import division, print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
 import os
 
 import matplotlib
@@ -9,7 +13,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_gtk import gtk, FigureManagerGTK, FigureCanvasGTK,\
      show, draw_if_interactive,\
-     error_msg_gtk, NavigationToolbar, PIXELS_PER_INCH, backend_version, \
+     error_msg_gtk, PIXELS_PER_INCH, backend_version, \
      NavigationToolbar2GTK
 from matplotlib.backends._gtkagg import agg_to_gtk_drawable
 
@@ -25,9 +29,7 @@ class FigureManagerGTKAgg(FigureManagerGTK):
     def _get_toolbar(self, canvas):
         # must be inited after the window, drawingArea and figure
         # attrs are set
-        if matplotlib.rcParams['toolbar']=='classic':
-            toolbar = NavigationToolbar (canvas, self.window)
-        elif matplotlib.rcParams['toolbar']=='toolbar2':
+        if matplotlib.rcParams['toolbar']=='toolbar2':
             toolbar = NavigationToolbar2GTKAgg (canvas, self.window)
         else:
             toolbar = None
@@ -120,3 +122,6 @@ Traceback (most recent call last):
     pixbuf = gtk.gdk.pixbuf_new_from_data(
 ValueError: data length (3156672) is less then required by the other parameters (3160608)
 """
+
+FigureCanvas = FigureCanvasGTKAgg
+FigureManager = FigureManagerGTKAgg

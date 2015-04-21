@@ -1,7 +1,10 @@
 """
 Manage figures for pyplot interface.
 """
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
 
 import sys, gc
 
@@ -66,13 +69,13 @@ class Gcf(object):
         del Gcf.figs[num]
         #print len(Gcf.figs.keys()), len(Gcf._activeQue)
         manager.destroy()
-        gc.collect()
+        gc.collect(1)
 
     @staticmethod
     def destroy_fig(fig):
         "*fig* is a Figure instance"
         num = None
-        for manager in Gcf.figs.itervalues():
+        for manager in six.itervalues(Gcf.figs):
             if manager.canvas.figure == fig:
                 num = manager.num
                 break
@@ -81,13 +84,13 @@ class Gcf(object):
 
     @staticmethod
     def destroy_all():
-        for manager in Gcf.figs.values():
+        for manager in list(Gcf.figs.values()):
             manager.canvas.mpl_disconnect(manager._cidgcf)
             manager.destroy()
 
         Gcf._activeQue = []
         Gcf.figs.clear()
-        gc.collect()
+        gc.collect(1)
 
     @staticmethod
     def has_fignum(num):
@@ -101,7 +104,7 @@ class Gcf(object):
         """
         Return a list of figure managers.
         """
-        return Gcf.figs.values()
+        return list(Gcf.figs.values())
 
     @staticmethod
     def get_num_fig_managers():
@@ -133,6 +136,3 @@ class Gcf(object):
 
 
 atexit.register(Gcf.destroy_all)
-
-
-

@@ -2,7 +2,10 @@
 GTK+ Matplotlib interface using cairo (not GDK) drawing operations.
 Author: Steve Chaplin
 """
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
 
 import gtk
 if gtk.pygtk_version < (2,7,0):
@@ -60,9 +63,7 @@ class FigureManagerGTKCairo(FigureManagerGTK):
     def _get_toolbar(self, canvas):
         # must be inited after the window, drawingArea and figure
         # attrs are set
-        if matplotlib.rcParams['toolbar']=='classic':
-            toolbar = NavigationToolbar (canvas, self.window)
-        elif matplotlib.rcParams['toolbar']=='toolbar2':
+        if matplotlib.rcParams['toolbar']=='toolbar2':
             toolbar = NavigationToolbar2GTKCairo (canvas, self.window)
         else:
             toolbar = None
@@ -72,3 +73,7 @@ class FigureManagerGTKCairo(FigureManagerGTK):
 class NavigationToolbar2Cairo(NavigationToolbar2GTK):
     def _get_canvas(self, fig):
         return FigureCanvasGTKCairo(fig)
+
+
+FigureCanvas = FigureCanvasGTKCairo
+FigureManager = FigureManagerGTKCairo

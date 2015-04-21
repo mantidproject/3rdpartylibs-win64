@@ -5,9 +5,15 @@
 # site-packages/matplotlib/mpl-data/matplotlibrc.  If you edit it
 # there, please note that it will be overwritten in your next install.
 # If you want to keep a permanent local copy that will not be
-# overwritten, place it in HOME/.matplotlib/matplotlibrc (unix/linux
-# like systems) and C:\Documents and Settings\yourname\.matplotlib
-# (win32 systems).
+# overwritten, place it in the following location:
+# unix/linux:
+#     $HOME/.config/matplotlib/matplotlibrc or
+#     $XDG_CONFIG_HOME/matplotlib/matplotlibrc (if $XDG_CONFIG_HOME is set)
+# other platforms:
+#     $HOME/.matplotlib/matplotlibrc
+#
+# See http://matplotlib.org/users/customizing.html#the-matplotlibrc-file for
+# more details on the paths which are checked for the configuration file.
 #
 # This file is best viewed in a editor which supports python mode
 # syntax highlighting. Blank lines, or lines starting with a comment
@@ -18,17 +24,17 @@
 # Colors: for the color values below, you can either use - a
 # matplotlib color string, such as r, k, or b - an rgb tuple, such as
 # (1.0, 0.5, 0.0) - a hex string, such as ff00ff or #ff00ff - a scalar
-# grayscale intensity such as 0.75 - a legal html color name, eg red,
+# grayscale intensity such as 0.75 - a legal html color name, e.g., red,
 # blue, darkslategray
 
 #### CONFIGURATION BEGINS HERE
 
-# the default backend; one of GTK GTKAgg GTKCairo GTK3Agg GTK3Cairo
-# CocoaAgg MacOSX Qt4Agg TkAgg WX WXAgg Agg Cairo GDK PS PDF SVG
-# Template
+# The default backend; one of GTK GTKAgg GTKCairo GTK3Agg GTK3Cairo
+# CocoaAgg MacOSX Qt4Agg Qt5Agg TkAgg WX WXAgg Agg Cairo GDK PS PDF SVG
+# Template.
 # You can also deploy your own backend outside of matplotlib by
 # referring to the module name (which must be in the PYTHONPATH) as
-# 'module://my_backend'
+# 'module://my_backend'.
 backend      : TkAgg
 
 # If you are using the Qt4Agg backend, you can choose here
@@ -51,6 +57,10 @@ backend      : TkAgg
 # When True, open the webbrowser to the plot that is shown
 # webagg.open_in_browser : True
 
+# When True, the figures rendered in the nbagg backend are created with
+# a transparent background.
+# nbagg.transparent : True
+
 # if you are running pyplot inside a GUI and your backend choice
 # conflicts, we will automatically try to find a compatible one for
 # you if backend_fallback is True
@@ -58,7 +68,7 @@ backend      : TkAgg
 
 #interactive  : False
 #toolbar      : toolbar2   # None | toolbar2  ("classic" is deprecated)
-#timezone     : UTC        # a pytz timezone string, eg US/Central or Europe/Paris
+#timezone     : UTC        # a pytz timezone string, e.g., US/Central or Europe/Paris
 
 # Where your matplotlib data lives if you installed to a non-default
 # location.  This is where the matplotlib fonts, bitmaps, etc reside
@@ -181,7 +191,7 @@ backend      : TkAgg
                              # correction off.  None will try and
                              # guess based on your dvipng version
 
-#text.hinting : 'auto' # May be one of the following:
+#text.hinting : auto   # May be one of the following:
                        #   'none': Perform no hinting
                        #   'auto': Use freetype's autohinter
                        #   'native': Use the hinting information in the
@@ -234,7 +244,8 @@ backend      : TkAgg
 #axes.labelweight    : normal  # weight of the x and y labels
 #axes.labelcolor     : black
 #axes.axisbelow      : False   # whether axis gridlines and ticks are below
-                              # the axes elements (lines, text, etc)
+                               # the axes elements (lines, text, etc)
+
 #axes.formatter.limits : -7, 7 # use scientific notation if log10
                                # of the axis range is smaller than the
                                # first or larger than the second
@@ -244,6 +255,12 @@ backend      : TkAgg
                                    # separator in the fr_FR locale.
 #axes.formatter.use_mathtext : False # When True, use mathtext for scientific
                                      # notation.
+#axes.formatter.useoffset      : True    # If True, the tick label formatter
+                                         # will default to labeling ticks relative
+                                         # to an offset when the data range is very
+                                         # small compared to the minimum absolute
+                                         # value of the data.
+
 #axes.unicode_minus  : True    # use unicode for the minus symbol
                                # rather than hyphen.  See
                                # http://en.wikipedia.org/wiki/Plus_and_minus_signs#Character_codes
@@ -303,6 +320,7 @@ backend      : TkAgg
 #legend.columnspacing : 2.    # the border between the axes and legend edge in fraction of fontsize
 #legend.shadow        : False
 #legend.frameon       : True   # whether or not to draw a frame around legend
+#legend.framealpha    : None    # opacity of of legend frame
 #legend.scatterpoints : 3 # number of scatter points
 
 ### FIGURE
@@ -373,10 +391,16 @@ backend      : TkAgg
 #savefig.edgecolor   : white    # figure edgecolor when saving
 #savefig.format      : png      # png, ps, pdf, svg
 #savefig.bbox        : standard # 'tight' or 'standard'.
+                                # 'tight' is incompatible with pipe-based animation
+                                # backends but will workd with temporary file based ones:
+                                # e.g. setting animation.writer to ffmpeg will not work,
+                                # use ffmpeg_file instead
 #savefig.pad_inches  : 0.1      # Padding to be used when bbox is set to 'tight'
 #savefig.jpeg_quality: 95       # when a jpeg is saved, the default quality parameter.
 #savefig.directory   : ~        # default directory in savefig dialog box,
                                 # leave empty to always use current working directory
+#savefig.transparent : False    # setting that controls whether figures are saved with a
+                                # transparent background by default
 
 # tk backend params
 #tk.window_focus   : False    # Maintain shell focus for TkAgg
@@ -421,7 +445,7 @@ backend      : TkAgg
 #
 # You can override the rc default verbosity from the command line by
 # giving the flags --verbose-LEVEL where LEVEL is one of the legal
-# levels, eg --verbose-helpful.
+# levels, e.g., --verbose-helpful.
 #
 # You can access the verbose instance in your code
 #   from matplotlib import verbose.
@@ -450,7 +474,7 @@ backend      : TkAgg
 
 ###ANIMATION settings
 #animation.writer : ffmpeg         # MovieWriter 'backend' to use
-#animation.codec : mp4             # Codec to use for writing movie
+#animation.codec : mpeg4           # Codec to use for writing movie
 #animation.bitrate: -1             # Controls size/quality tradeoff for movie.
                                    # -1 implies let utility auto-determine
 #animation.frame_format: 'png'     # Controls frame format used by temp files
@@ -464,3 +488,6 @@ backend      : TkAgg
                                    # Path to mencoder binary. Without full path
                                    # $PATH is searched
 #animation.mencoder_args: ''       # Additional arguments to pass to mencoder
+#animation.convert_path: 'convert' # Path to ImageMagick's convert binary.
+                                   # On Windows use the full path since convert
+                                   # is also the name of a system tool.

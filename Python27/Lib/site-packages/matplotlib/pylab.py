@@ -23,6 +23,7 @@ _Plotting commands
   broken_barh - a set of horizontal bars with gaps
   box       - set the axes frame on/off state
   boxplot   - make a box and whisker plot
+  violinplot - make a violin plot
   cla       - clear current axes
   clabel    - label a contour plot
   clf       - clear a figure window
@@ -156,15 +157,14 @@ _Matrix commands
 
 _Probability
 
-  levypdf   - The levy probability density function from the char. func.
   normpdf   - The Gaussian probability density function
   rand      - random numbers from the uniform distribution
   randn     - random numbers from the normal distribution
 
 _Statistics
 
-  amax       - the maximum along dimension m
-  amin       - the minimum along dimension m
+  amax      - the maximum along dimension m
+  amin      - the minimum along dimension m
   corrcoef  - correlation coefficient
   cov       - covariance matrix
   mean      - the mean along dimension m
@@ -173,7 +173,8 @@ _Statistics
   prod      - the product along dimension m
   ptp       - the max-min along dimension m
   std       - the standard deviation along dimension m
-  asum       - the sum along dimension m
+  asum      - the sum along dimension m
+  ksdensity - the kernel density estimate
 
 _Time series analysis
 
@@ -214,7 +215,11 @@ __end
 
 
 """
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
 import sys, warnings
 
 from matplotlib.cbook import flatten, is_string_like, exception_to_str, \
@@ -247,7 +252,7 @@ from matplotlib.mlab import griddata, stineman_interp, slopes, \
     is_closed_polygon, path_length, distances_along_curve, vector_lengths
 
 from matplotlib.mlab import window_hanning, window_none,  detrend, demean, \
-     detrend_mean, detrend_none, detrend_linear, entropy, normpdf, levypdf, \
+     detrend_mean, detrend_none, detrend_linear, entropy, normpdf, \
      find, longest_contiguous_ones, longest_ones, prepca, \
      prctile, prctile_rank, \
      center_matrix, rk4, bivariate_normal, get_xyz_where, \
@@ -276,5 +281,6 @@ import numpy.ma as ma
 # don't let numpy's datetime hide stdlib
 import datetime
 
-if sys.version_info > (2, 6, 0):
-    bytes = __builtins__['bytes']
+# This is needed, or bytes will be numpy.random.bytes from
+# "from numpy.random import *" above
+bytes = __builtins__['bytes']

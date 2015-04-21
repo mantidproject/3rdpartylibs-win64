@@ -1,10 +1,11 @@
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
 import os
 import sys
-try:
-    from hashlib import md5
-except ImportError:
-    from md5 import md5
+from hashlib import md5
 
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -71,7 +72,7 @@ def latex2html(node, source):
     if not os.path.exists(destdir):
         os.makedirs(destdir)
     dest = os.path.join(destdir, '%s.png' % name)
-    path = os.path.join(setup.app.builder.imgpath, 'mathmpl')
+    path = '/'.join((setup.app.builder.imgpath, 'mathmpl'))
 
     depth = latex2png(latex, dest, node['fontset'])
 

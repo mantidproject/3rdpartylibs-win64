@@ -1,4 +1,7 @@
-from __future__ import division, print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
 
 import os
 import numpy
@@ -73,7 +76,6 @@ class RendererMac(RendererBase):
             master_transform, paths, all_transforms):
             path_ids.append((path, transform))
         master_transform = master_transform.get_matrix()
-        all_transforms = [t.get_matrix() for t in all_transforms]
         offsetTrans = offsetTrans.get_matrix()
         gc.draw_path_collection(master_transform, path_ids, all_transforms,
                              offsets, offsetTrans, facecolors, edgecolors,
@@ -104,6 +106,9 @@ class RendererMac(RendererBase):
         points = transform.transform(points)
         gc.draw_gouraud_triangle(points, colors)
 
+    def get_image_magnification(self):
+        return self.gc.get_image_magnification()
+
     def draw_image(self, gc, x, y, im):
         im.flipud_out()
         nrows, ncols, data = im.as_rgba_str()
@@ -112,19 +117,21 @@ class RendererMac(RendererBase):
 
     def draw_tex(self, gc, x, y, s, prop, angle, ismath='TeX!', mtext=None):
         # todo, handle props, angle, origins
+        scale = self.gc.get_image_magnification()
         size = prop.get_size_in_points()
         texmanager = self.get_texmanager()
         key = s, size, self.dpi, angle, texmanager.get_font_config()
         im = self.texd.get(key) # Not sure what this does; just copied from backend_agg.py
         if im is None:
-            Z = texmanager.get_grey(s, size, self.dpi)
+            Z = texmanager.get_grey(s, size, self.dpi*scale)
             Z = numpy.array(255.0 - Z * 255.0, numpy.uint8)
 
         gc.draw_mathtext(x, y, angle, Z)
 
     def _draw_mathtext(self, gc, x, y, s, prop, angle):
+        scale = self.gc.get_image_magnification()
         ox, oy, width, height, descent, image, used_characters = \
-            self.mathtext_parser.parse(s, self.dpi, prop)
+            self.mathtext_parser.parse(s, self.dpi*scale, prop)
         gc.draw_mathtext(x, y, angle, 255 - image.as_array())
 
     def draw_text(self, gc, x, y, s, prop, angle, ismath=False, mtext=None):
@@ -136,7 +143,7 @@ class RendererMac(RendererBase):
             style = prop.get_style()
             points = prop.get_size_in_points()
             size = self.points_to_pixels(points)
-            gc.draw_text(x, y, unicode(s), family, size, weight, style, angle)
+            gc.draw_text(x, y, six.text_type(s), family, size, weight, style, angle)
 
     def get_text_width_height_descent(self, s, prop, ismath):
         if ismath=='TeX':
@@ -155,7 +162,8 @@ class RendererMac(RendererBase):
         style = prop.get_style()
         points = prop.get_size_in_points()
         size = self.points_to_pixels(points)
-        width, height, descent = self.gc.get_text_width_height_descent(unicode(s), family, size, weight, style)
+        width, height, descent = self.gc.get_text_width_height_descent(
+            six.text_type(s), family, size, weight, style)
         return  width, height, 0.0*descent
 
     def flipy(self):
@@ -309,7 +317,7 @@ class FigureCanvasMac(_macosx.FigureCanvas, FigureCanvasBase):
         self.figure.dpi = self.renderer.dpi
         width, height = self.figure.get_size_inches()
         width, height = width*dpi, height*dpi
-        filename = unicode(filename)
+        filename = six.text_type(filename)
         self.write_bitmap(filename, width, height, dpi)
         self.figure.dpi = old_dpi
 
@@ -356,9 +364,7 @@ class FigureManagerMac(_macosx.FigureManager, FigureManagerBase):
         FigureManagerBase.__init__(self, canvas, num)
         title = "Figure %d" % num
         _macosx.FigureManager.__init__(self, canvas, title)
-        if rcParams['toolbar']=='classic':
-            self.toolbar = NavigationToolbarMac(canvas)
-        elif rcParams['toolbar']=='toolbar2':
+        if rcParams['toolbar']=='toolbar2':
             self.toolbar = NavigationToolbar2Mac(canvas)
         else:
             self.toolbar = None
@@ -375,75 +381,6 @@ class FigureManagerMac(_macosx.FigureManager, FigureManagerBase):
 
     def close(self):
         Gcf.destroy(self.num)
-
-
-class NavigationToolbarMac(_macosx.NavigationToolbar):
-
-    def __init__(self, canvas):
-        self.canvas = canvas
-        basedir = os.path.join(rcParams['datapath'], "images")
-        images = {}
-        for imagename in ("stock_left",
-                          "stock_right",
-                          "stock_up",
-                          "stock_down",
-                          "stock_zoom-in",
-                          "stock_zoom-out",
-                          "stock_save_as"):
-            filename = os.path.join(basedir, imagename+".ppm")
-            images[imagename] = self._read_ppm_image(filename)
-        _macosx.NavigationToolbar.__init__(self, images)
-        self.message = None
-
-    def _read_ppm_image(self, filename):
-        data = ""
-        imagefile = open(filename)
-        for line in imagefile:
-            if "#" in line:
-                i = line.index("#")
-                line = line[:i] + "\n"
-            data += line
-        imagefile.close()
-        magic, width, height, maxcolor, imagedata = data.split(None, 4)
-        width, height = int(width), int(height)
-        assert magic=="P6"
-        assert len(imagedata)==width*height*3 # 3 colors in RGB
-        return (width, height, imagedata)
-
-    def panx(self, direction):
-        axes = self.canvas.figure.axes
-        selected = self.get_active()
-        for i in selected:
-            axes[i].xaxis.pan(direction)
-        self.canvas.invalidate()
-
-    def pany(self, direction):
-        axes = self.canvas.figure.axes
-        selected = self.get_active()
-        for i in selected:
-            axes[i].yaxis.pan(direction)
-        self.canvas.invalidate()
-
-    def zoomx(self, direction):
-        axes = self.canvas.figure.axes
-        selected = self.get_active()
-        for i in selected:
-            axes[i].xaxis.zoom(direction)
-        self.canvas.invalidate()
-
-    def zoomy(self, direction):
-        axes = self.canvas.figure.axes
-        selected = self.get_active()
-        for i in selected:
-            axes[i].yaxis.zoom(direction)
-        self.canvas.invalidate()
-
-    def save_figure(self, *args):
-        filename = _macosx.choose_save_file('Save the figure',
-                                            self.canvas.get_default_filename())
-        if filename is None: # Cancel
-            return
-        self.canvas.print_figure(filename)
 
 
 class NavigationToolbar2Mac(_macosx.NavigationToolbar2, NavigationToolbar2):
@@ -490,5 +427,5 @@ class NavigationToolbar2Mac(_macosx.NavigationToolbar2, NavigationToolbar2):
 #
 ########################################################################
 
-
+FigureCanvas = FigureCanvasMac
 FigureManager = FigureManagerMac

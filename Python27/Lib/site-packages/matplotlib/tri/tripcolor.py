@@ -1,8 +1,13 @@
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
 from matplotlib.collections import PolyCollection, TriMesh
 from matplotlib.colors import Normalize
 from matplotlib.tri.triangulation import Triangulation
 import numpy as np
+
 
 def tripcolor(ax, *args, **kwargs):
     """
@@ -49,7 +54,8 @@ def tripcolor(ax, *args, **kwargs):
 
         .. plot:: mpl_examples/pylab_examples/tripcolor_demo.py
     """
-    if not ax._hold: ax.cla()
+    if not ax._hold:
+        ax.cla()
 
     alpha = kwargs.pop('alpha', 1.0)
     norm = kwargs.pop('norm', None)
@@ -61,7 +67,7 @@ def tripcolor(ax, *args, **kwargs):
 
     tri, args, kwargs = Triangulation.get_from_args_and_kwargs(*args, **kwargs)
 
-    # C is the colors array, defined at either points or faces (i.e. triangles).
+    # C is the colors array defined at either points or faces (i.e. triangles).
     # If facecolors is None, C are defined at points.
     # If facecolors is not None, C are defined at faces.
     if facecolors is not None:
@@ -74,16 +80,15 @@ def tripcolor(ax, *args, **kwargs):
     # length of C whether it refers to points or faces.
     # Do not do this for gouraud shading.
     if (facecolors is None and len(C) == len(tri.triangles) and
-           len(C) != len(tri.x) and shading != 'gouraud'):
+            len(C) != len(tri.x) and shading != 'gouraud'):
         facecolors = C
 
     # Check length of C is OK.
-    if ( (facecolors is None and len(C) != len(tri.x)) or
-           (facecolors is not None and len(C) != len(tri.triangles)) ):
+    if ((facecolors is None and len(C) != len(tri.x)) or
+            (facecolors is not None and len(C) != len(tri.triangles))):
         raise ValueError('Length of color values array must be the same '
                          'as either the number of triangulation points '
                          'or triangles')
-
 
     # Handling of linewidths, shading, edgecolors and antialiased as
     # in Axes.pcolor
@@ -105,7 +110,6 @@ def tripcolor(ax, *args, **kwargs):
     if 'antialiaseds' not in kwargs and ec.lower() == "none":
         kwargs['antialiaseds'] = False
 
-
     if shading == 'gouraud':
         if facecolors is not None:
             raise ValueError('Gouraud shading does not support the use '
@@ -118,8 +122,8 @@ def tripcolor(ax, *args, **kwargs):
     else:
         # Vertices of triangles.
         maskedTris = tri.get_masked_triangles()
-        verts = np.concatenate((tri.x[maskedTris][...,np.newaxis],
-                                tri.y[maskedTris][...,np.newaxis]), axis=2)
+        verts = np.concatenate((tri.x[maskedTris][..., np.newaxis],
+                                tri.y[maskedTris][..., np.newaxis]), axis=2)
 
         # Color values.
         if facecolors is None:
@@ -133,7 +137,8 @@ def tripcolor(ax, *args, **kwargs):
 
     collection.set_alpha(alpha)
     collection.set_array(C)
-    if norm is not None: assert(isinstance(norm, Normalize))
+    if norm is not None:
+        assert(isinstance(norm, Normalize))
     collection.set_cmap(cmap)
     collection.set_norm(norm)
     if vmin is not None or vmax is not None:
@@ -147,7 +152,7 @@ def tripcolor(ax, *args, **kwargs):
     miny = tri.y.min()
     maxy = tri.y.max()
     corners = (minx, miny), (maxx, maxy)
-    ax.update_datalim( corners)
+    ax.update_datalim(corners)
     ax.autoscale_view()
     ax.add_collection(collection)
     return collection

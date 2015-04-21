@@ -1,10 +1,14 @@
-from __future__ import division, print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
 import matplotlib
 from matplotlib.figure import Figure
 
-from backend_agg import FigureCanvasAgg
-import backend_wx    # already uses wxversion.ensureMinimal('2.8')
-from backend_wx import FigureManager, FigureManagerWx, FigureCanvasWx, \
+from .backend_agg import FigureCanvasAgg
+from . import backend_wx    # already uses wxversion.ensureMinimal('2.8')
+from .backend_wx import FigureManagerWx, FigureCanvasWx, \
     FigureFrameWx, DEBUG_MSG, NavigationToolbar2Wx, error_msg_wx, \
     draw_if_interactive, show, Toolbar, backend_version
 import wx
@@ -15,9 +19,7 @@ class FigureFrameWxAgg(FigureFrameWx):
         return FigureCanvasWxAgg(self, -1, fig)
 
     def _get_toolbar(self, statbar):
-        if matplotlib.rcParams['toolbar']=='classic':
-            toolbar = NavigationToolbarWx(self.canvas, True)
-        elif matplotlib.rcParams['toolbar']=='toolbar2':
+        if matplotlib.rcParams['toolbar']=='toolbar2':
             toolbar = NavigationToolbar2WxAgg(self.canvas)
             toolbar.set_status_bar(statbar)
         else:
@@ -187,3 +189,6 @@ def _WX28_clipped_agg_as_bitmap(agg, bbox):
     destDC.SelectObject(wx.NullBitmap)
 
     return destBmp
+
+FigureCanvas = FigureCanvasWxAgg
+FigureManager = FigureManagerWx

@@ -29,10 +29,22 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 # OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+from six.moves import xrange
+
 import numpy as np
 
-# TODO: Vectorize this
+from matplotlib.cbook import deprecated, warn_deprecated
+
+
+warn_deprecated('1.4.0', name='matplotlib.testing.image_util',
+                obj_type='module')
+
+
+@deprecated('1.4.0')
 def autocontrast(image, cutoff=0):
     """
     Maximize image contrast, based on histogram.  This completely

@@ -1,13 +1,17 @@
-from __future__ import division, print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
 import re
 import warnings
 import inspect
 import matplotlib
 import matplotlib.cbook as cbook
 from matplotlib import docstring, rcParams
-from transforms import Bbox, IdentityTransform, TransformedBbox, \
+from .transforms import Bbox, IdentityTransform, TransformedBbox, \
                        TransformedPath, Transform
-from path import Path
+from .path import Path
 
 ## Note, matplotlib artists use the doc strings for set and get
 # methods to enable the introspection methods of setp and getp.  Every
@@ -189,6 +193,14 @@ class Artist(object):
         Subclasses should override for inclusion in the bounding box
         "tight" calculation. Default is to return an empty bounding
         box at 0, 0.
+
+        Be careful when using this function, the results will not update
+        if the artist window extent of the artist changes.  The extent
+        can change due to any changes in the transform stack, such as
+        changing the axes limits, the figure size, or the canvas used
+        (as is done when saving a figure).  This can lead to unexpected
+        behavior where interactive figures will look fine on the screen,
+        but will save incorrectly.
         """
         return Bbox([[0, 0], [0, 0]])
 
@@ -225,7 +237,7 @@ class Artist(object):
         Fire an event when property changed, calling all of the
         registered callbacks.
         """
-        for oid, func in self._propobservers.iteritems():
+        for oid, func in six.iteritems(self._propobservers):
             func(self)
 
     def is_transform_set(self):
@@ -290,7 +302,7 @@ class Artist(object):
         selection, such as which points are contained in the pick radius.  See
         individual artists for details.
         """
-        if callable(self._contains):
+        if six.callable(self._contains):
             return self._contains(self, mouseevent)
         warnings.warn("'%s' needs 'contains' method" % self.__class__.__name__)
         return False, {}
@@ -335,7 +347,7 @@ class Artist(object):
         # Pick self
         if self.pickable():
             picker = self.get_picker()
-            if callable(picker):
+            if six.callable(picker):
                 inside, prop = picker(self, mouseevent)
             else:
                 inside, prop = self.contains(mouseevent)
@@ -346,11 +358,14 @@ class Artist(object):
         for a in self.get_children():
             # make sure the event happened in the same axes
             ax = getattr(a, 'axes', None)
-            if mouseevent.inaxes is None or mouseevent.inaxes == ax:
+            if mouseevent.inaxes is None or ax is None or \
+                    mouseevent.inaxes == ax:
                 # we need to check if mouseevent.inaxes is None
                 # because some objects associated with an axes (e.g., a
                 # tick label) can be outside the bounding box of the
                 # axes and inaxes will be None
+                # also check that ax is None so that it traverse objects
+                # which do no have an axes property but children might
                 a.pick(mouseevent)
 
     def set_picker(self, picker):
@@ -637,6 +652,9 @@ class Artist(object):
         """
         Set whether artist uses clipping.
 
+        When False artists will be visible out side of the axes which
+        can lead to unexpected results.
+
         ACCEPTS: [True | False]
         """
         self._clipon = b
@@ -733,9 +751,9 @@ class Artist(object):
         self.eventson = False
         changed = False
 
-        for k, v in props.iteritems():
+        for k, v in six.iteritems(props):
             func = getattr(self, 'set_' + k, None)
-            if func is None or not callable(func):
+            if func is None or not six.callable(func):
                 raise AttributeError('Unknown property %s' % k)
             func(v)
             changed = True
@@ -803,7 +821,7 @@ class Artist(object):
         A tkstyle set command, pass *kwargs* to set properties
         """
         ret = []
-        for k, v in kwargs.iteritems():
+        for k, v in six.iteritems(kwargs):
             k = k.lower()
             funcName = "set_%s" % k
             func = getattr(self, funcName)
@@ -836,7 +854,7 @@ class Artist(object):
         elif cbook.issubclass_safe(match, Artist):
             def matchfunc(x):
                 return isinstance(x, match)
-        elif callable(match):
+        elif six.callable(match):
             matchfunc = match
         else:
             raise ValueError('match must be None, a matplotlib.artist.Artist '
@@ -894,7 +912,7 @@ class ArtistInspector:
         """
         names = [name for name in dir(self.o) if
                  (name.startswith('set_') or name.startswith('get_'))
-                 and callable(getattr(self.o, name))]
+                 and six.callable(getattr(self.o, name))]
         aliases = {}
         for name in names:
             func = getattr(self.o, name)
@@ -947,7 +965,7 @@ class ArtistInspector:
             if not name.startswith('set_'):
                 continue
             o = getattr(self.o, name)
-            if not callable(o):
+            if not six.callable(o):
                 continue
             if len(inspect.getargspec(o)[0]) < 2:
                 continue
@@ -993,7 +1011,7 @@ class ArtistInspector:
         if s in self.aliasd:
             return s + ''.join([' or %s' % x
                                 for x
-                                in self.aliasd[s].iterkeys()])
+                                in six.iterkeys(self.aliasd[s])])
         else:
             return s
 
@@ -1010,7 +1028,7 @@ class ArtistInspector:
         if s in self.aliasd:
             aliases = ''.join([' or %s' % x
                                for x
-                               in self.aliasd[s].iterkeys()])
+                               in six.iterkeys(self.aliasd[s])])
         else:
             aliases = ''
         return ':meth:`%s <%s>`%s' % (s, target, aliases)
@@ -1102,7 +1120,7 @@ class ArtistInspector:
         o = self.oorig
         getters = [name for name in dir(o)
                    if name.startswith('get_')
-                   and callable(getattr(o, name))]
+                   and six.callable(getattr(o, name))]
         #print getters
         getters.sort()
         d = dict()
@@ -1126,7 +1144,7 @@ class ArtistInspector:
         """
 
         d = self.properties()
-        names = d.keys()
+        names = list(six.iterkeys(d))
         names.sort()
         lines = []
         for name in names:
@@ -1161,7 +1179,7 @@ class ArtistInspector:
         elif issubclass(match, Artist):
             def matchfunc(x):
                 return isinstance(x, match)
-        elif callable(match):
+        elif six.callable(match):
             matchfunc = func
         else:
             raise ValueError('match must be None, an '
@@ -1289,7 +1307,7 @@ def setp(obj, *args, **kwargs):
     funcvals = []
     for i in range(0, len(args) - 1, 2):
         funcvals.append((args[i], args[i + 1]))
-    funcvals.extend(kwargs.iteritems())
+    funcvals.extend(kwargs.items())
 
     ret = []
     for o in objs:

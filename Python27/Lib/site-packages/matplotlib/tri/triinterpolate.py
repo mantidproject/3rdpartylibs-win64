@@ -1,7 +1,12 @@
 """
 Interpolation inside triangular grids.
 """
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+from six.moves import xrange
+
 from matplotlib.tri import Triangulation
 from matplotlib.tri.trifinder import TriFinder
 from matplotlib.tri.tritools import TriAnalyzer
@@ -286,7 +291,7 @@ class LinearTriInterpolator(TriInterpolator):
         elif return_key == 'dzdy':
             return self._plane_coefficients[tri_index, 1]
         else:
-            raise ValueError("Invalid return_key: "+return_key)
+            raise ValueError("Invalid return_key: " + return_key)
 
 
 class CubicTriInterpolator(TriInterpolator):
@@ -457,9 +462,9 @@ class CubicTriInterpolator(TriInterpolator):
             dzdx = self._ReferenceElement.get_function_derivatives(
                 alpha, J, ecc, dof)
             if return_key == 'dzdx':
-                return dzdx[:, 0]
+                return dzdx[:, 0, 0]
             else:
-                return dzdx[:, 1]
+                return dzdx[:, 1, 0]
         else:
             raise ValueError("Invalid return_key: " + return_key)
 
@@ -526,7 +531,7 @@ class CubicTriInterpolator(TriInterpolator):
         ab = _transpose_vectorized(abT)
         x = np.expand_dims(x, ndim)
         y = np.expand_dims(y, ndim)
-        OM = np.concatenate([x, y], ndim)-tris_pts[:, 0, :]
+        OM = np.concatenate([x, y], ndim) - tris_pts[:, 0, :]
 
         metric = _prod_vectorized(ab, abT)
         # Here we try to deal with the colinear cases.
@@ -563,8 +568,8 @@ class CubicTriInterpolator(TriInterpolator):
                     ksi: element parametric coordinates in triangle first apex
                     local basis.
         """
-        a = np.array(tris_pts[:, 1, :]-tris_pts[:, 0, :])
-        b = np.array(tris_pts[:, 2, :]-tris_pts[:, 0, :])
+        a = np.array(tris_pts[:, 1, :] - tris_pts[:, 0, :])
+        b = np.array(tris_pts[:, 2, :] - tris_pts[:, 0, :])
         J = _to_matrix_vectorized([[a[:, 0], a[:, 1]],
                                    [b[:, 0], b[:, 1]]])
         return J
@@ -595,9 +600,9 @@ class CubicTriInterpolator(TriInterpolator):
         dot_c = _prod_vectorized(_transpose_vectorized(c), c)[:, 0, 0]
         # Note that this line will raise a warning for dot_a, dot_b or dot_c
         # zeros, but we choose not to support triangles with duplicate points.
-        return _to_matrix_vectorized([[(dot_c-dot_b)/dot_a],
-                                      [(dot_a-dot_c)/dot_b],
-                                      [(dot_b-dot_a)/dot_c]])
+        return _to_matrix_vectorized([[(dot_c-dot_b) / dot_a],
+                                      [(dot_a-dot_c) / dot_b],
+                                      [(dot_b-dot_a) / dot_c]])
 
 
 # FEM element used for interpolation and for solving minimisation
@@ -1373,7 +1378,7 @@ def _cg(A, b, x0=None, tol=1.e-10, maxiter=1000):
 
     # Following C. T. Kelley
     while (np.sqrt(abs(rho)) > tol*b_norm) and (k < maxiter):
-        p = w+beta*p
+        p = w + beta*p
         z = A.dot(p)
         alpha = rho/np.dot(p, z)
         r = r - alpha*z
@@ -1540,7 +1545,7 @@ def _prod_vectorized(M1, M2):
     assert sh1[-1] == sh2[-2]
 
     ndim1 = len(sh1)
-    t1_index = range(ndim1-2) + [ndim1-1, ndim1-2]
+    t1_index = list(xrange(ndim1-2)) + [ndim1-1, ndim1-2]
     return np.sum(np.transpose(M1, t1_index)[..., np.newaxis] *
                   M2[..., np.newaxis, :], -3)
 

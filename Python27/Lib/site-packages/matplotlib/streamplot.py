@@ -2,7 +2,12 @@
 Streamline plotting for 2D vector fields.
 
 """
-from __future__ import division
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+from six.moves import xrange
+
 import numpy as np
 import matplotlib
 import matplotlib.cm as cm
@@ -16,7 +21,7 @@ __all__ = ['streamplot']
 
 def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='-|>',
-               minlength=0.1, transform=None):
+               minlength=0.1, transform=None, zorder=1):
     """Draws streamlines of a vector flow.
 
     *x*, *y* : 1d arrays
@@ -26,7 +31,7 @@ def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
         the number of columns should match x.
     *density* : float or 2-tuple
         Controls the closeness of streamlines. When `density = 1`, the domain
-        is divided into a 25x25 grid---*density* linearly scales this grid.
+        is divided into a 30x30 grid---*density* linearly scales this grid.
         Each cell in the grid can have, at most, one traversing streamline.
         For different densities in each direction, use [density_x, density_y].
     *linewidth* : numeric or 2d array
@@ -47,6 +52,8 @@ def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
         See :class:`~matplotlib.patches.FancyArrowPatch`.
     *minlength* : float
         Minimum length of streamline in axes coordinates.
+    *zorder* : int
+        any number
 
     Returns:
 
@@ -73,7 +80,7 @@ def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
         transform = axes.transData
 
     if color is None:
-        color = axes._get_lines.color_cycle.next()
+        color = six.next(axes._get_lines.color_cycle)
 
     if linewidth is None:
         linewidth = matplotlib.rcParams['lines.linewidth']
@@ -85,8 +92,7 @@ def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
     if use_multicolor_lines:
         assert color.shape == grid.shape
         line_colors = []
-        if np.any(np.isnan(color)):
-            color = np.ma.array(color, mask=np.isnan(color))
+        color = np.ma.masked_invalid(color)
     else:
         line_kw['color'] = color
         arrow_kw['color'] = color
@@ -98,14 +104,15 @@ def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
         line_kw['linewidth'] = linewidth
         arrow_kw['linewidth'] = linewidth
 
+    line_kw['zorder'] = zorder
+    arrow_kw['zorder'] = zorder
+
     ## Sanity checks.
     assert u.shape == grid.shape
     assert v.shape == grid.shape
 
-    if np.any(np.isnan(u)):
-        u = np.ma.array(u, mask=np.isnan(u))
-    if np.any(np.isnan(v)):
-        v = np.ma.array(v, mask=np.isnan(v))
+    u = np.ma.masked_invalid(u)
+    v = np.ma.masked_invalid(v)
 
     integrate = get_integrator(u, v, dmap, minlength)
 
@@ -150,7 +157,7 @@ def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
 
         if use_multicolor_lines:
             color_values = interpgrid(color, tgx, tgy)[:-1]
-            line_colors.extend(color_values)
+            line_colors.append(color_values)
             arrow_kw['color'] = cmap(norm(color_values[n]))
 
         p = patches.FancyArrowPatch(arrow_tail,
@@ -164,13 +171,11 @@ def streamplot(axes, x, y, u, v, density=1, linewidth=None, color=None,
                                      transform=transform,
                                      **line_kw)
     if use_multicolor_lines:
-        lc.set_array(np.asarray(line_colors))
+        lc.set_array(np.ma.hstack(line_colors))
         lc.set_cmap(cmap)
         lc.set_norm(norm)
     axes.add_collection(lc)
-
-    axes.update_datalim(((x.min(), y.min()), (x.max(), y.max())))
-    axes.autoscale_view(tight=True)
+    axes.autoscale_view()
 
     ac = matplotlib.collections.PatchCollection(arrows)
     stream_container = StreamplotSet(lc, ac)
@@ -303,8 +308,8 @@ class StreamMask(object):
             self.nx = self.ny = int(30 * density)
         else:
             assert len(density) == 2
-            self.nx = int(25 * density[0])
-            self.ny = int(25 * density[1])
+            self.nx = int(30 * density[0])
+            self.ny = int(30 * density[1])
         self._mask = np.zeros((self.ny, self.nx))
         self.shape = self._mask.shape
 

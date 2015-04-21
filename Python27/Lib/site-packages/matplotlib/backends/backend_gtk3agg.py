@@ -1,15 +1,22 @@
-import cairo
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import six
+
 import numpy as np
 import sys
 import warnings
 
-import backend_agg
-import backend_gtk3
+from . import backend_agg
+from . import backend_gtk3
+from .backend_cairo import cairo, HAS_CAIRO_CFFI
 from matplotlib.figure import Figure
 from matplotlib import transforms
 
-if sys.version_info[0] >= 3:
-    warnings.warn("The Gtk3Agg backend is not known to work on Python 3.x.")
+if six.PY3 and not HAS_CAIRO_CFFI:
+    warnings.warn(
+        "The Gtk3Agg backend is known to not work on Python 3.x with pycairo. "
+        "Try installing cairocffi.")
 
 
 class FigureCanvasGTK3Agg(backend_gtk3.FigureCanvasGTK3,
@@ -39,6 +46,12 @@ class FigureCanvasGTK3Agg(backend_gtk3.FigureCanvasGTK3,
         else:
             bbox_queue = self._bbox_queue
 
+        if HAS_CAIRO_CFFI:
+            ctx = cairo.Context._from_pointer(
+                cairo.ffi.cast('cairo_t **',
+                               id(ctx) + object.__basicsize__)[0],
+                incref=True)
+
         for bbox in bbox_queue:
             area = self.copy_from_bbox(bbox)
             buf = np.fromstring(area.to_string_argb(), dtype='uint8')
@@ -48,8 +61,12 @@ class FigureCanvasGTK3Agg(backend_gtk3.FigureCanvasGTK3,
             width = int(bbox.x1) - int(bbox.x0)
             height = int(bbox.y1) - int(bbox.y0)
 
-            image = cairo.ImageSurface.create_for_data(
-                buf, cairo.FORMAT_ARGB32, width, height)
+            if HAS_CAIRO_CFFI:
+                image = cairo.ImageSurface.create_for_data(
+                    buf.data, cairo.FORMAT_ARGB32, width, height)
+            else:
+                image = cairo.ImageSurface.create_for_data(
+                    buf, cairo.FORMAT_ARGB32, width, height)
             ctx.set_source_surface(image, x, y)
             ctx.paint()
 
@@ -102,5 +119,6 @@ def new_figure_manager_given_figure(num, figure):
     return manager
 
 
+FigureCanvas = FigureCanvasGTK3Agg
 FigureManager = FigureManagerGTK3Agg
 show = backend_gtk3.show
