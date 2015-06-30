@@ -319,11 +319,11 @@ class Mingw32CCompiler (CygwinCCompiler):
         else:
             entry_point = ''
 
-        self.set_executables(compiler='gcc -O -Wall',
-                             compiler_so='gcc -mdll -O -Wall',
-                             compiler_cxx='g++ -O -Wall',
-                             linker_exe='gcc',
-                             linker_so='%s  %s %s'
+        self.set_executables(compiler='gcc -mno-cygwin -O -Wall',
+                             compiler_so='gcc -mno-cygwin -mdll -O -Wall',
+                             compiler_cxx='g++ -mno-cygwin -O -Wall',
+                             linker_exe='gcc -mno-cygwin',
+                             linker_so='%s -mno-cygwin %s %s'
                                         % (self.linker_dll, shared_option,
                                            entry_point))
         # Maybe we should also append -mthreads, but then the finished
