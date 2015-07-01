@@ -8,7 +8,7 @@ for the Microsoft Visual Studio.
 # hacked by Robin Becker and Thomas Heller to do a better job of
 #   finding DevStudio (through the registry)
 
-__revision__ = "$Id: msvccompiler.py 76956 2009-12-21 01:22:46Z tarek.ziade $"
+__revision__ = "$Id$"
 
 import sys
 import os
@@ -156,7 +156,7 @@ def get_build_version():
     For Python 2.3 and up, the version number is included in
     sys.version.  For earlier versions, assume the compiler is MSVC 6.
     """
-    return 10.0
+
     prefix = "MSC v."
     i = string.find(sys.version, prefix)
     if i == -1:
@@ -250,6 +250,7 @@ class MSVCCompiler (CCompiler) :
         self.initialized = False
 
     def initialize(self):
+
         self.__paths = []
         if "DISTUTILS_USE_SDK" in os.environ and "MSSdk" in os.environ and self.find_exe("cl.exe"):
             # Assume that the SDK set up everything alright; don't try to be
@@ -349,7 +350,7 @@ class MSVCCompiler (CCompiler) :
     def compile(self, sources,
                 output_dir=None, macros=None, include_dirs=None, debug=0,
                 extra_preargs=None, extra_postargs=None, depends=None):
-
+        
         if not self.initialized: self.initialize()
         macros, objects, extra_postargs, pp_opts, build = \
                 self._setup_compile(output_dir, macros, include_dirs, sources,
@@ -654,6 +655,6 @@ class MSVCCompiler (CCompiler) :
 if get_build_version() >= 8.0:
     log.debug("Importing new compiler from distutils.msvc9compiler")
     OldMSVCCompiler = MSVCCompiler
-    from distutils.msvc10compiler import MSVCCompiler
+    from distutils.msvc9compiler import MSVCCompiler
     # get_build_architecture not really relevant now we support cross-compile
-    from distutils.msvc10compiler import MacroExpander
+    from distutils.msvc9compiler import MacroExpander
